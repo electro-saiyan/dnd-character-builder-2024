@@ -1,0 +1,22 @@
+// PHB 2024 language tables.
+export const LANGUAGES = [
+  { id: "common", name: "Common", rarity: "standard" },
+  { id: "common-sign", name: "Common Sign Language", rarity: "standard" },
+  { id: "draconic", name: "Draconic", rarity: "standard" },
+  { id: "dwarvish", name: "Dwarvish", rarity: "standard" },
+  { id: "elvish", name: "Elvish", rarity: "standard" },
+  { id: "giant", name: "Giant", rarity: "standard" },
+  { id: "gnomish", name: "Gnomish", rarity: "standard" },
+  { id: "goblin", name: "Goblin", rarity: "standard" },
+  { id: "halfling", name: "Halfling", rarity: "standard" },
+  { id: "orc", name: "Orc", rarity: "standard" },
+  { id: "abyssal", name: "Abyssal", rarity: "rare" },
+  { id: "celestial", name: "Celestial", rarity: "rare" },
+  { id: "deep-speech", name: "Deep Speech", rarity: "rare" },
+  { id: "druidic", name: "Druidic", rarity: "rare", secret: true },
+  { id: "infernal", name: "Infernal", rarity: "rare" },
+  { id: "primordial", name: "Primordial", rarity: "rare" },
+  { id: "sylvan", name: "Sylvan", rarity: "rare" },
+  { id: "thieves-cant", name: "Thieves' Cant", rarity: "rare", secret: true },
+  { id: "undercommon", name: "Undercommon", rarity: "rare" },
+];

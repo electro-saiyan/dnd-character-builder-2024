@@ -1,0 +1,252 @@
+// PHB 2024 feats. Feat text is a short summary, not the book's wording.
+// category: "origin" | "general" | "fighting-style" | "epic"
+// prereq: { level?, scores?: [[abilities], min] (any one), training?: armor id, spellcasting?, fightingStyle? }
+
+const ALL = ["str", "dex", "con", "int", "wis", "cha"];
+const MENTAL = ["int", "wis", "cha"];
+const PHYSICAL = ["str", "dex"];
+
+// +1 to one ability (fixed when only one is listed).
+const increase = (from, max = 20) =>
+  from.length === 1
+    ? { type: "ability", ids: from, value: 1, max }
+    : { type: "choose", category: "ability", from, count: 1, value: 1, max, key: "asi" };
+
+const feat = (category, id, name, text, effects = [], extra = {}) => ({ id, name, source: "PHB 2024", category, text, effects, ...extra });
+
+const general = (id, name, prereq, from, text, effects = [], extra = {}) =>
+  feat("general", id, name, text, [increase(from), ...effects], { prereq: { level: 4, ...prereq }, ...extra });
+
+const epic = (id, name, from, text, effects = []) =>
+  feat("epic", id, name, text, [increase(from, 30), ...effects], { prereq: { level: 19 } });
+
+const style = (id, name, text, effects = []) => feat("fighting-style", id, name, text, effects, { prereq: { fightingStyle: true } });
+
+const magicInitiate = (list, label) =>
+  feat("origin", `magic-initiate-${list}`, `Magic Initiate (${label})`,
+    `Two ${label} cantrips and one level 1 ${label} spell (always prepared, cast free 1/Long Rest); INT, WIS or CHA.`,
+    [
+      { type: "choose", category: "spellAbility", from: MENTAL, count: 1, key: "ability" },
+      { type: "choose", category: "spell", from: { list, level: 0 }, count: 2, key: "cantrips" },
+      { type: "choose", category: "spell", from: { list, level: 1 }, count: 1, key: "spell" },
+      { type: "resource", id: `magic-initiate-${list}`, name: `Magic Initiate (${label})`, max: 1, recharge: "long" },
+    ],
+    { group: "magic-initiate" });
+
+const touched = (id, name, fixed, schools, text) =>
+  general(id, name, {}, MENTAL, text, [
+    { type: "spell", ids: [fixed], alwaysPrepared: true },
+    { type: "choose", category: "spell", from: { level: 1, school: schools }, count: 1, key: "spell" },
+  ]);
+
+const FAST_CRAFTING_TOOLS = [
+  "carpenters-tools", "leatherworkers-tools", "masons-tools", "potters-tools",
+  "smiths-tools", "tinkers-tools", "weavers-tools", "woodcarvers-tools",
+];
+
+export const FEATS = [
+  // ----- Origin -----
+  feat("origin", "alert", "Alert",
+    "Add Proficiency Bonus to Initiative. After rolling Initiative, may swap results with a willing ally.",
+    [{ type: "bonus", target: "initiative", value: "prof" }]),
+  feat("origin", "crafter", "Crafter",
+    "Proficiency with three Artisan's Tools (Fast Crafting table); 20% discount on nonmagical items; craft one item after a Long Rest.",
+    [{ type: "choose", category: "tool", from: FAST_CRAFTING_TOOLS, count: 3, key: "tools" }]),
+  feat("origin", "healer", "Healer",
+    "Battle Medic: with a Healer's Kit, an adjacent creature spends a Hit Die + your PB to heal. Reroll 1s on healing dice."),
+  feat("origin", "lucky", "Lucky",
+    "Luck Points = PB: spend 1 for Advantage on a D20 Test or to impose Disadvantage on an attack against you.",
+    [{ type: "resource", id: "luck-points", name: "Luck Points", max: "prof", recharge: "long" }]),
+  magicInitiate("cleric", "Cleric"),
+  magicInitiate("druid", "Druid"),
+  magicInitiate("wizard", "Wizard"),
+  feat("origin", "musician", "Musician",
+    "Proficiency with three Musical Instruments; after a rest, play to give Heroic Inspiration to PB allies.",
+    [{ type: "choose", category: "tool", from: { toolType: ["instrument"] }, count: 3, key: "instruments" }]),
+  feat("origin", "savage-attacker", "Savage Attacker",
+    "Once per turn on a weapon hit, roll the damage dice twice and use either result."),
+  feat("origin", "skilled", "Skilled",
+    "Proficiency in any combination of three skills or tools.",
+    [{ type: "choose", category: "skillOrTool", from: "any", count: 3, key: "picks" }], { repeatable: true }),
+  feat("origin", "tavern-brawler", "Tavern Brawler",
+    "Unarmed Strike damage 1d4 + STR; reroll 1s on Unarmed Strike damage; proficient with improvised weapons; once per turn, push 5 ft on an Unarmed Strike hit.",
+    [
+      { type: "unarmedStrike", die: "1d4", abilities: ["str"], notes: ["reroll 1s", "push 5 ft 1/turn"] },
+      { type: "prof", category: "weapon", ids: ["improvised"] },
+    ]),
+  feat("origin", "tough", "Tough",
+    "HP maximum +2 per character level.",
+    [{ type: "bonus", target: "hpPerLevel", value: 2 }]),
+
+  // ----- General -----
+  feat("general", "ability-score-improvement", "Ability Score Improvement",
+    "+2 to one ability or +1 to two abilities (max 20).",
+    [{ type: "choose", category: "ability", from: ALL, count: 2, value: 1, max: 20, allowDuplicates: true, key: "asi" }],
+    { prereq: { level: 4 }, repeatable: true }),
+  general("actor", "Actor", { scores: [["cha"], 13] }, ["cha"],
+    "Advantage on Deception/Performance to pass as someone while disguised; mimic sounds (Insight DC 8 + CHA + PB)."),
+  general("athlete", "Athlete", { scores: [PHYSICAL, 13] }, PHYSICAL,
+    "Climb Speed equal to Speed; stand from Prone with 5 ft; running jumps after only 5 ft."),
+  general("charger", "Charger", { scores: [PHYSICAL, 13] }, PHYSICAL,
+    "+10 ft Speed when you Dash; after moving 10 ft straight, a melee hit deals +1d8 or pushes 10 ft (1/turn)."),
+  general("chef", "Chef", {}, ["con", "wis"],
+    "Cook's Utensils; Short Rest meal heals +1d8 for 4 + PB creatures; PB treats grant PB Temp HP.",
+    [{ type: "prof", category: "tool", ids: ["cooks-utensils"] }]),
+  general("crossbow-expert", "Crossbow Expert", { scores: [["dex"], 13] }, ["dex"],
+    "Ignore Loading on crossbows; no Disadvantage in melee range; add ability mod to a Light crossbow's extra attack."),
+  general("crusher", "Crusher", {}, ["str", "con"],
+    "Once per turn, a Bludgeoning hit moves the target 5 ft; Bludgeoning crits give Advantage on attacks against the target."),
+  general("defensive-duelist", "Defensive Duelist", { scores: [["dex"], 13] }, ["dex"],
+    "Reaction with a Finesse weapon: add PB to AC against melee attacks until your next turn."),
+  general("dual-wielder", "Dual Wielder", { scores: [PHYSICAL, 13] }, PHYSICAL,
+    "After a Light weapon attack, Bonus Action attack with a different non-Two-Handed melee weapon; draw or stow two weapons."),
+  general("durable", "Durable", {}, ["con"],
+    "Advantage on Death Saves; Bonus Action: spend a Hit Die to heal."),
+  general("elemental-adept", "Elemental Adept", { spellcasting: true }, MENTAL,
+    "Choose Acid, Cold, Fire, Lightning or Thunder: your spells ignore Resistance to it and treat 1s on its damage dice as 2s.",
+    [{ type: "choose", category: "damageType", from: ["acid", "cold", "fire", "lightning", "thunder"], count: 1, key: "type" }],
+    { repeatable: true }),
+  touched("fey-touched", "Fey Touched", "misty-step", ["divination", "enchantment"],
+    "Misty Step and one level 1 Divination or Enchantment spell always prepared; cast each free 1/Long Rest."),
+  general("grappler", "Grappler", { scores: [PHYSICAL, 13] }, PHYSICAL,
+    "Unarmed Strike can damage and grapple at once (1/turn); Advantage vs creatures you grapple; move grappled creatures freely."),
+  general("great-weapon-master", "Great Weapon Master", { scores: [["str"], 13] }, ["str"],
+    "Heavy weapon hits in the Attack action deal +PB damage; after a crit or kill, Bonus Action attack."),
+  general("heavily-armored", "Heavily Armored", { training: "medium" }, ["str", "con"],
+    "Heavy armor training.",
+    [{ type: "prof", category: "armor", ids: ["heavy"] }]),
+  general("heavy-armor-master", "Heavy Armor Master", { training: "heavy" }, ["str", "con"],
+    "In Heavy armor, reduce Bludgeoning, Piercing and Slashing damage from hits by PB."),
+  general("inspiring-leader", "Inspiring Leader", { scores: [["wis", "cha"], 13] }, ["wis", "cha"],
+    "After a rest, up to six allies gain Temp HP = character level + the increased ability's modifier."),
+  general("keen-mind", "Keen Mind", { scores: [["int"], 13] }, ["int"],
+    "Proficiency (or Expertise if proficient) in Arcana, History, Investigation, Nature or Religion; Study as a Bonus Action.",
+    [{ type: "choose", category: "skillOrExpertise", from: ["arcana", "history", "investigation", "nature", "religion"], count: 1, key: "skill" }]),
+  general("lightly-armored", "Lightly Armored", {}, PHYSICAL,
+    "Light armor and Shield training.",
+    [{ type: "prof", category: "armor", ids: ["light", "shield"] }]),
+  general("mage-slayer", "Mage Slayer", {}, PHYSICAL,
+    "Damaged concentrating creatures have Disadvantage on the save; turn a failed INT/WIS/CHA save into a success (1/Short Rest).",
+    [{ type: "resource", id: "guarded-mind", name: "Guarded Mind", max: 1, recharge: "short" }]),
+  general("martial-weapon-training", "Martial Weapon Training", {}, PHYSICAL,
+    "Proficiency with Martial weapons.",
+    [{ type: "prof", category: "weapon", ids: ["martial"] }]),
+  general("medium-armor-master", "Medium Armor Master", { training: "medium" }, PHYSICAL,
+    "With DEX 16+, add up to +3 DEX to AC in Medium armor.",
+    [{ type: "mediumArmorDexCap", value: 3 }]),
+  general("moderately-armored", "Moderately Armored", { training: "light" }, PHYSICAL,
+    "Medium armor training.",
+    [{ type: "prof", category: "armor", ids: ["medium"] }]),
+  general("mounted-combatant", "Mounted Combatant", {}, ["str", "dex", "wis"],
+    "While mounted: Advantage vs smaller unmounted foes near your mount; mount takes no damage on a successful DEX save; redirect hits to you."),
+  general("observant", "Observant", { scores: [["int", "wis"], 13] }, ["int", "wis"],
+    "Proficiency (or Expertise if proficient) in Insight, Investigation or Perception; Search as a Bonus Action.",
+    [{ type: "choose", category: "skillOrExpertise", from: ["insight", "investigation", "perception"], count: 1, key: "skill" }]),
+  general("piercer", "Piercer", {}, PHYSICAL,
+    "Once per turn reroll one Piercing damage die; Piercing crits roll one extra die."),
+  general("poisoner", "Poisoner", {}, ["dex", "int"],
+    "Poisoner's Kit; your poison ignores Resistance; brew PB doses: CON save or 2d8 Poison and Poisoned.",
+    [{ type: "prof", category: "tool", ids: ["poisoners-kit"] }]),
+  general("polearm-master", "Polearm Master", { scores: [PHYSICAL, 13] }, PHYSICAL,
+    "With a Quarterstaff, Spear or Heavy Reach weapon: Bonus Action d4 butt-end attack; Reaction attack when a creature enters your reach."),
+  feat("general", "resilient", "Resilient",
+    "+1 to an ability you lack save proficiency in, and gain proficiency in that saving throw.",
+    [{ type: "choose", category: "ability", from: ALL, count: 1, value: 1, max: 20, saveProf: true, key: "asi" }],
+    { prereq: { level: 4 } }),
+  general("ritual-caster", "Ritual Caster", { scores: [MENTAL, 13] }, MENTAL,
+    "PB level 1 Ritual spells always prepared (+1 when PB rises); cast one at normal time without a slot 1/Long Rest.",
+    [
+      { type: "choose", category: "spell", from: { level: 1, ritual: true }, count: "prof", key: "rituals" },
+      { type: "resource", id: "quick-ritual", name: "Quick Ritual", max: 1, recharge: "long" },
+    ]),
+  general("sentinel", "Sentinel", { scores: [PHYSICAL, 13] }, PHYSICAL,
+    "Opportunity Attack when an adjacent creature Disengages or attacks someone else; hits set its Speed to 0."),
+  touched("shadow-touched", "Shadow Touched", "invisibility", ["illusion", "necromancy"],
+    "Invisibility and one level 1 Illusion or Necromancy spell always prepared; cast each free 1/Long Rest."),
+  general("sharpshooter", "Sharpshooter", { scores: [["dex"], 13] }, ["dex"],
+    "Ranged weapon attacks ignore Half and Three-Quarters Cover, no Disadvantage in melee or at long range."),
+  general("shield-master", "Shield Master", { training: "shield" }, ["str"],
+    "Shield Bash after a melee hit: STR save or pushed 5 ft / Prone (1/turn); Reaction: no damage on a successful DEX save."),
+  feat("general", "skill-expert", "Skill Expert",
+    "+1 to any ability; proficiency in one skill; Expertise in one skill.",
+    [
+      increase(ALL),
+      { type: "choose", category: "skill", from: "any", count: 1, key: "skill" },
+      { type: "choose", category: "expertise", from: "proficient", count: 1, key: "expertise" },
+    ],
+    { prereq: { level: 4 } }),
+  general("skulker", "Skulker", { scores: [["dex"], 13] }, ["dex"],
+    "Blindsight 10 ft; Advantage on Stealth to Hide in combat; missing while hidden doesn't reveal you.",
+    [{ type: "sense", id: "blindsight", range: 10 }]),
+  general("slasher", "Slasher", {}, PHYSICAL,
+    "Once per turn a Slashing hit reduces Speed by 10 ft; Slashing crits give the target Disadvantage on attacks."),
+  general("speedy", "Speedy", { scores: [["dex", "con"], 13] }, ["dex", "con"],
+    "+10 ft Speed; Dash ignores Difficult Terrain; Opportunity Attacks against you have Disadvantage.",
+    [{ type: "bonus", target: "speed", value: 10 }]),
+  general("spell-sniper", "Spell Sniper", { spellcasting: true }, MENTAL,
+    "Spell attacks ignore Half/Three-Quarters Cover, no Disadvantage in melee; +60 ft range on attack spells with 10+ ft range."),
+  general("telekinetic", "Telekinetic", {}, MENTAL,
+    "Mage Hand (no V/S, invisible, +30 ft); Bonus Action shove a creature 5 ft (STR save, DC 8 + mod + PB).",
+    [{ type: "spell", ids: ["mage-hand"] }]),
+  general("telepathic", "Telepathic", {}, MENTAL,
+    "Speak telepathically within 60 ft; Detect Thoughts always prepared, cast free 1/Long Rest.",
+    [{ type: "spell", ids: ["detect-thoughts"], alwaysPrepared: true }]),
+  general("war-caster", "War Caster", { spellcasting: true }, MENTAL,
+    "Advantage on Concentration saves; cast a spell as an Opportunity Attack; Somatic components with hands full."),
+  general("weapon-master", "Weapon Master", {}, PHYSICAL,
+    "Use the mastery property of one weapon kind you're proficient with; swap after a Long Rest.",
+    [{ type: "choose", category: "mastery", from: { kind: "weapon" }, count: 1, key: "mastery" }]),
+
+  // ----- Fighting Style -----
+  style("archery", "Archery", "+2 to attack rolls with Ranged weapons.",
+    [{ type: "weaponBonus", attack: 2, match: [{ type: "ranged" }] }]),
+  style("blind-fighting", "Blind Fighting", "Blindsight 10 ft.",
+    [{ type: "sense", id: "blindsight", range: 10 }]),
+  style("defense", "Defense", "+1 AC while wearing Light, Medium or Heavy armor.",
+    [{ type: "bonus", target: "ac", value: 1, requiresArmor: true }]),
+  style("dueling", "Dueling", "+2 damage with a one-handed melee weapon when holding no other weapons."),
+  style("great-weapon-fighting", "Great Weapon Fighting", "Treat 1s and 2s as 3s on damage dice for two-handed Two-Handed/Versatile melee attacks."),
+  style("interception", "Interception", "Reaction: reduce damage to a creature within 5 ft by 1d10 + PB (needs a Shield or weapon)."),
+  style("protection", "Protection", "Reaction with a Shield: attacks against a creature within 5 ft have Disadvantage until your next turn."),
+  style("thrown-weapon-fighting", "Thrown Weapon Fighting", "+2 damage on ranged attacks with Thrown weapons."),
+  style("two-weapon-fighting", "Two-Weapon Fighting", "Add your ability modifier to the damage of Light weapon extra attacks."),
+  style("unarmed-fighting", "Unarmed Fighting",
+    "Unarmed Strike deals 1d6 + STR (1d8 with no weapon or Shield held); 1d4 to a creature you grapple each turn.",
+    [{ type: "unarmedStrike", die: "1d6", abilities: ["str"], notes: ["1d8 if no weapon or Shield held"] }]),
+
+  // ----- Epic Boon -----
+  epic("boon-of-combat-prowess", "Boon of Combat Prowess", ALL, "Once per turn-cycle, turn a missed attack into a hit."),
+  epic("boon-of-dimensional-travel", "Boon of Dimensional Travel", ALL, "After the Attack or Magic action, teleport 30 ft."),
+  epic("boon-of-energy-resistance", "Boon of Energy Resistance", ALL,
+    "Resistance to two of Acid, Cold, Fire, Lightning, Necrotic, Poison, Psychic, Radiant, Thunder (change on a Long Rest); Reaction: redirect that damage (DEX save, 2d12 + CON).",
+    [{ type: "choose", category: "resistance", from: ["acid", "cold", "fire", "lightning", "necrotic", "poison", "psychic", "radiant", "thunder"], count: 2, key: "types" }]),
+  epic("boon-of-fate", "Boon of Fate", ALL,
+    "Add or subtract 2d4 from a D20 Test; recharges on Initiative or a Short/Long Rest.",
+    [{ type: "resource", id: "boon-of-fate", name: "Boon of Fate", max: 1, recharge: "short" }]),
+  epic("boon-of-fortitude", "Boon of Fortitude", ALL,
+    "HP maximum +40; once per turn, regain extra HP equal to CON when healed.",
+    [{ type: "bonus", target: "hp", value: 40 }]),
+  epic("boon-of-irresistible-offense", "Boon of Irresistible Offense", PHYSICAL,
+    "Your Bludgeoning, Piercing and Slashing damage ignores Resistance; on a natural 20, extra damage equal to the increased score."),
+  epic("boon-of-recovery", "Boon of Recovery", ALL,
+    "Drop to 1 HP instead of 0 and regain half your HP (1/Long Rest); pool of ten d10s to heal as a Bonus Action.",
+    [
+      { type: "resource", id: "last-stand", name: "Last Stand", max: 1, recharge: "long" },
+      { type: "resource", id: "recover-vitality", name: "Recover Vitality (d10)", max: 10, recharge: "long" },
+    ]),
+  epic("boon-of-skill", "Boon of Skill", ALL,
+    "Proficiency in all skills; Expertise in one skill.",
+    [
+      { type: "prof", category: "skill", ids: "all" },
+      { type: "choose", category: "expertise", from: "proficient", count: 1, key: "expertise" },
+    ]),
+  epic("boon-of-speed", "Boon of Speed", ALL,
+    "+30 ft Speed; Bonus Action Disengage that also ends Grappled.",
+    [{ type: "bonus", target: "speed", value: 30 }]),
+  epic("boon-of-spell-recall", "Boon of Spell Recall", MENTAL,
+    "When you cast with a level 1–4 slot, roll 1d4: if it equals the slot level, the slot isn't expended."),
+  epic("boon-of-the-night-spirit", "Boon of the Night Spirit", ALL,
+    "In dim light or darkness: Bonus Action to become Invisible; Resistance to all damage except Psychic and Radiant."),
+  epic("boon-of-truesight", "Boon of Truesight", ALL, "Truesight 60 ft.",
+    [{ type: "sense", id: "truesight", range: 60 }]),
+];
