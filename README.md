@@ -42,6 +42,13 @@ next to it.
 | **Equipment** | Inventory (quantity, equip, attune), add items, coins |
 | **Review** | Checklist with warnings + the canvas character sheet |
 
+**Custom** (in the sidebar, under Home) holds content your DM invented for the campaign:
+feats, spells, items (weapons, armor, shields, tools, gear/magic items), backgrounds and
+species. They appear in the regular steps next to the official options. A custom feat can also
+be ticked as *granted to this character* for boons the DM hands out outside the normal feat
+slots. Custom content is kept when you start a new character, and **Export / Import campaign
+content** shares it with the rest of the table.
+
 Only valid options are offered: feat prerequisites, invocation prerequisites, spell levels you
 have slots for, and duplicate skill/tool/language proficiencies are blocked.
 
@@ -86,6 +93,7 @@ css/app.css           UI styles (light/dark) + print rules
 serve.mjs             zero-dependency static server
 js/
   main.js             bootstrap, hash router, step navigation, live summary
+  home.js, custom.js  pages outside the wizard: home, campaign content editor
   state.js            character object (choices only) + derive() -> every sheet value
   rules.js            pure calculations (modifiers, HP, AC, slots, point buy, …)
   choices.js          option lists for each choice + pick validation
@@ -120,9 +128,11 @@ The full list of effect types is easiest to read in `derive()` (`js/state.js`).
 ### Custom entries
 
 `createRegistry(custom)` (in `js/data/index.js`) merges user-defined backgrounds, feats,
-spells and items over the built-ins by id; the character's `custom` field is passed in
-automatically. There's no editor UI for custom entries yet — add them to the exported JSON
-under `custom`, using the same shapes as the built-in data, and re-import.
+spells, items and species over the built-ins by id; the character's `custom` field is passed
+in automatically. The Custom page (`js/custom.js`) edits them: each entry keeps its raw form
+values in `form` so it can be edited again. Hand-written entries in the same shapes as the
+built-in data work too (add them to the JSON under `custom` and re-import). Feats listed in the
+character's `boons` are applied as if granted by a feature.
 
 Spells outside the 2024 PHB (present on the source wiki) are kept in `js/data/spells.js` but
 excluded by default; `createRegistry({}, { allSources: true })` includes them.

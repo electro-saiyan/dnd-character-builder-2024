@@ -13,8 +13,11 @@ import spellsStep from "./steps/step-spells.js";
 import equipmentStep from "./steps/step-equipment.js";
 import reviewStep from "./steps/step-review.js";
 import homePage from "./home.js";
+import customPage from "./custom.js";
 
 const STEPS = [classStep, originStep, abilitiesStep, alignmentStep, detailsStep, spellsStep, equipmentStep, reviewStep];
+// Pages outside the wizard order (no number, no Next button).
+const PAGES = [homePage, customPage];
 
 const store = createStore(loadCharacter() ?? createCharacter());
 const $ = (id) => document.getElementById(id);
@@ -38,18 +41,21 @@ function context() {
 
 function newCharacter() {
   if (!confirm("Start a new character? The current one is replaced (export it first to keep it).")) return;
-  store.replace(createCharacter());
+  // Campaign content belongs to the table, not the character: keep it.
+  const next = createCharacter();
+  next.custom = structuredClone(store.get().custom);
+  store.replace(next);
   go(STEPS[0].id);
 }
 
 function renderNav(ctx) {
   $("steps").replaceChildren(
-    h(
+    ...[[homePage, "⌂"], [customPage, "✦"]].map(([page, icon]) => h(
       "a",
-      { href: `#${homePage.id}`, class: "home-link", "aria-current": current === homePage.id ? "step" : null },
-      h("span", { class: "dot" }, "⌂"),
-      h("span", { class: "label" }, homePage.title),
-    ),
+      { href: `#${page.id}`, class: `page-link ${page.id}-link`, "aria-current": current === page.id ? "step" : null },
+      h("span", { class: "dot" }, icon),
+      h("span", { class: "label" }, page.title),
+    )),
     ...ctx.steps.map((s, i) => {
       const done = !ctx.status[s.id].errors.length;
       return h(
@@ -108,16 +114,18 @@ function renderSummary({ sheet }) {
 
 function render(meta = {}) {
   const ctx = context();
-  if (current !== homePage.id && !ctx.steps.some((s) => s.id === current)) current = ctx.steps[0].id;
+  const page = PAGES.find((p) => p.id === current);
+  if (!page && !ctx.steps.some((s) => s.id === current)) current = ctx.steps[0].id;
   renderNav(ctx);
   renderSummary(ctx);
   // The home page is about the app, not the character: no summary panel.
   const home = current === homePage.id;
   $("summary").hidden = home;
   $("summary").parentElement.classList.toggle("is-home", home);
-  if (home) {
-    $("step").replaceChildren(homePage.render(ctx));
-    if (meta.keepScroll === false) window.scrollTo(0, 0);
+  const scroll = window.scrollY;
+  if (page) {
+    $("step").replaceChildren(page.render(ctx));
+    window.scrollTo(0, meta.keepScroll === false ? 0 : scroll);
     return;
   }
   if (meta.quiet && $("step-nav")) {
@@ -125,7 +133,6 @@ function render(meta = {}) {
     return;
   }
   const step = STEPS.find((s) => s.id === current);
-  const scroll = window.scrollY;
   $("step").replaceChildren(step.render(ctx), stepNav(ctx));
   window.scrollTo(0, meta.keepScroll === false ? 0 : scroll);
 }

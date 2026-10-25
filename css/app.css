@@ -131,7 +131,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   background: var(--surface);
 }
 .steps .done .dot { background: var(--ok); border-color: var(--ok); color: #fff; }
-.steps .home-link { margin-bottom: 0.4rem; }
+.steps .custom-link { margin-bottom: 0.4rem; }
 .steps .todo .dot { border-color: var(--warn); color: var(--warn); }
 
 .step { min-width: 0; }
@@ -250,6 +250,24 @@ tr.group-row th { padding-top: 0.8rem; color: var(--text); border-bottom: 2px so
 .messages.errors { color: var(--error); }
 .messages.warnings { color: var(--warn); }
 .status-ok { color: var(--ok); }
+
+/* ---------- Custom content ---------- */
+
+.checks { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; }
+.check { display: inline-flex; align-items: center; gap: 0.35em; cursor: pointer; }
+.row > .check { margin-bottom: 0.75rem; }
+.custom-entry-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.75rem; }
+.custom-entry-actions { margin-left: auto; display: inline-flex; flex-wrap: wrap; gap: 0.75rem; align-items: baseline; }
+.custom-list { margin-bottom: 0.75rem; }
+.panel textarea { width: 100%; }
+.panel details.advanced { margin: 0.5rem 0 0.75rem; }
+.panel details.advanced textarea { font-family: ui-monospace, Consolas, monospace; font-size: 0.85rem; min-height: 6em; }
+.edit-rows { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.5rem; }
+.edit-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; padding-bottom: 0.25rem; border-bottom: 1px dashed var(--border); }
+.edit-row > :first-child { flex: 1; }
+.trait-row .field:last-child { margin-bottom: 0.25rem; }
+.form-actions { align-items: center; }
+.form-actions .errors { color: var(--error); }
 
 /* ---------- Canvas sheet ---------- */
 

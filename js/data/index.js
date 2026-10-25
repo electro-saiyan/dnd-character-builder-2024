@@ -23,12 +23,12 @@ export const CLASSES = [BARBARIAN, BARD, CLERIC, DRUID, FIGHTER, MONK, PALADIN, 
 
 const byId = (list) => Object.fromEntries(list.map((x) => [x.id, x]));
 
-// custom: { backgrounds, feats, spells, items } — user-defined entries, override built-ins by id.
+// custom: { backgrounds, feats, spells, items, species } — user-defined entries, override built-ins by id.
 // options.allSources: also include spells from outside the 2024 PHB.
 export function createRegistry(custom = {}, { allSources = false } = {}) {
   return {
     classes: byId(CLASSES),
-    species: byId(SPECIES),
+    species: byId([...SPECIES, ...(custom.species ?? [])]),
     backgrounds: byId([...BACKGROUNDS, ...(custom.backgrounds ?? [])]),
     feats: byId([...FEATS, ...(custom.feats ?? [])]),
     spells: byId([...(allSources ? ALL_SPELLS : SPELLS), ...(custom.spells ?? [])]),

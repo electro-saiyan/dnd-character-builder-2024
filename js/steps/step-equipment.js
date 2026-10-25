@@ -26,7 +26,8 @@ export default {
       return h(
         "tr",
         {},
-        h("td", {}, item.name, item.contents && h("div", { class: "small muted" }, item.contents.join(", "))),
+        h("td", {}, item.name, item.contents && h("div", { class: "small muted" }, item.contents.join(", ")),
+          item.text && h("div", { class: "small muted" }, item.text)),
         h("td", { class: "num" }, h("input", {
           type: "number", min: "1", value: String(entry.qty), style: "width:4.5em", "aria-label": `${item.name} quantity`,
           onchange: (e) => edit(i, (x) => {

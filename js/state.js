@@ -35,7 +35,9 @@ export function createCharacter() {
       slotsExpended: Array(9).fill(0),
       heroicInspiration: false,
     },
-    custom: { backgrounds: [], feats: [], spells: [], items: [] },
+    // Campaign content invented by the DM (Custom page); kept when starting a new character.
+    custom: { backgrounds: [], feats: [], spells: [], items: [], species: [] },
+    boons: [], // feat ids (usually custom feats) the DM granted directly
   };
 }
 
@@ -134,6 +136,11 @@ export function derive(ch, reg) {
   if (species) {
     // Trait `level` is a character-level gate (e.g. Dragonborn Draconic Flight at 5th).
     for (const t of species.traits) if ((t.level ?? 1) <= level) sources.push({ kind: "species", ...t, scope: "", step: "origin" });
+  }
+  // Feats the DM granted outside the normal feat slots (picked on the Custom page).
+  for (const id of ch.boons ?? []) {
+    const feat = reg.feats[id];
+    if (feat) sources.push({ kind: "feat", id, name: feat.name, text: feat.text, effects: feat.effects, scope: `boon/${id}`, step: "custom" });
   }
 
   // Choice categories whose picks are registry entries that act like features (with their own effects).

@@ -31,17 +31,37 @@ export function saveCharacter(ch) {
   }
 }
 
-export function exportJSON(ch) {
-  const blob = new Blob([JSON.stringify(ch, null, 2)], { type: "application/json" });
+const download = (data, name) => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `${(ch.details.name || "character").replace(/[^\w-]+/g, "_")}.json`;
+  a.download = `${name.replace(/[^\w-]+/g, "_")}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+
+export function exportJSON(ch) {
+  download(ch, ch.details.name || "character");
 }
 
 export async function importJSON(file) {
   const data = JSON.parse(await file.text());
   if (typeof data !== "object" || data === null || !("classId" in data)) throw new Error("Not a character file.");
   return migrate(data);
+}
+
+// Campaign content only (the character's `custom` entries), to share with the rest of the table.
+const CUSTOM_FORMAT = "dnd2024.custom";
+const CUSTOM_KINDS = ["feats", "spells", "items", "backgrounds", "species"];
+
+export function exportCustom(custom) {
+  download({ format: CUSTOM_FORMAT, ...custom }, "campaign-content");
+}
+
+// Accepts a campaign-content file or a whole character file; returns { feats: [], spells: [], ... }.
+export async function importCustom(file) {
+  const data = JSON.parse(await file.text());
+  const source = data?.format === CUSTOM_FORMAT ? data : data?.custom;
+  if (typeof source !== "object" || source === null) throw new Error("No custom content in this file.");
+  return Object.fromEntries(CUSTOM_KINDS.map((k) => [k, Array.isArray(source[k]) ? source[k] : []]));
 }
